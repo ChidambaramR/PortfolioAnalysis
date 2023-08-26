@@ -33,7 +33,7 @@ def is_table_exists(symbol):
 
 def get_next_start_date(symbol):
     conn = sqlite3.connect(DB_PATH)
-    query = "SELECT * FROM {} ORDER BY ts DESC LIMIT 1".format(symbol)
+    query = "SELECT * FROM '{}' ORDER BY ts DESC LIMIT 1".format(symbol)
 
     df = pd.read_sql_query(query, conn)
 
@@ -96,7 +96,6 @@ def get_data(api_instance, instrument_key, instrument_name, from_date, to_date):
     return data_df
 
 def get_historical_data(symbol, isin, from_date, to_date = datetime.datetime.now().date()):
-    """
     api_instance = upstox_client.HistoryApi()
 
     conn = sqlite3.connect(DB_PATH)
@@ -130,7 +129,6 @@ def get_historical_data(symbol, isin, from_date, to_date = datetime.datetime.now
 
     conn.commit()
     conn.close()
-    """
 
     df = get_historical_data_from_db(symbol, from_date, to_date)
     return df

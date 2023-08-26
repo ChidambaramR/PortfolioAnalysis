@@ -50,7 +50,7 @@ def fetch_symbols(scrip_codes):
     code_to_symbols = []
 
     for code in codes_to_be_fetched:
-        if code == "0000" or code == "000" or not re.match("[0-9]+", code):
+        if code == "0000" or code == "000" or code == "IN0020200286" or not (re.match("[0-9]+", code) or re.match("IN\d{10}", code)):
             print("Invalid code {}. Not fetching!".format(code))
             continue
 
@@ -82,80 +82,5 @@ def fetch_symbols(scrip_codes):
     put_details_to_database(code_to_symbols_df)
 
 
-def get_sgb_details(sgbs):
-    for sgb in sgbs:
-        url = "https://www.moneycontrol.com/mccode/common/autosuggestion_solr.php?classic=true&query={}&type=1&format=json&callback=suggest1".format(sgb['isin'])
-        response = requests.get(url)
-        time.sleep(5)
+# fetch_symbols(["500209", "500102"])
 
-        response_json = response.text[10:-2]
-        response_json = json.loads(response_json)
-        symbol_details = get_symbol(response_json['pdt_dis_nm'])[0].split(' ')
-
-'''
-get_sgb_details([
-    {
-        'isin': "IN0020200195",
-        'date': datetime.date(2020, 9, 5),
-        'amt': 10134,
-        'qty': 2
-    },
-    {
-        'isin': "IN0020200203",
-        'date': datetime.date(2020, 10, 14),
-        'amt': 10002,
-        'qty': 2
-    },
-    {
-        'isin': "IN0020200286",
-        'date': datetime.date(2020, 11, 1),
-        'amt': 10254,
-        'qty': 2
-    },
-    {
-        'isin': "IN0020200377",
-        'date': datetime.date(2020, 12, 30),
-        'amt': 14850,
-        'qty': 3
-    },
-    {
-        'isin': "IN0020200385",
-        'date': datetime.date(2021, 1, 13),
-        'amt': 15162,
-        'qty': 3
-    },
-    {
-        'isin': "IN0020200393",
-        'date': datetime.date(2021, 2, 3),
-        'amt': 14586,
-        'qty': 3
-    },
-    {
-        'isin': "IN0020200427",
-        'date': datetime.date(2021, 3, 3),
-        'amt': 18488,
-        'qty': 4
-    },
-    {
-        'isin': "IN0020210053",
-        'date': datetime.date(2021, 5, 19),
-        'amt': 18908,
-        'qty': 4
-    },
-    {
-        'isin': "IN0020210061",
-        'date': datetime.date(2021, 5, 28),
-        'amt': 9584,
-        'qty': 2
-    },
-    {
-        'isin': "IN0020210129",
-        'date': datetime.date(2021, 8, 11),
-        'amt': 14220,
-        'qty': 3
-    }
-])
-
-
-fetch_symbols(["500209", "500102"])
-'''

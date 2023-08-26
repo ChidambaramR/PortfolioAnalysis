@@ -7,6 +7,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 from Constants import SCRIP_NAME, TYPE, QUANTITY, PRICE
+from SGBDetails import get_sgb_details
 from SymbolFetcher import fetch_symbols
 
 # Write code to read a file from disk and return the contents as a json array
@@ -38,24 +39,18 @@ def get_trade_book():
     mse_trade_book['transaction_date'] = pd.to_datetime(mse_trade_book['transaction_date'], format='%d/%m/%Y').dt.date
     mse_trade_book.rename(columns={"scrip_code": "code", "scrip_name": "name", "transaction_date": "ts"}, inplace=True)
 
-    symbols_to_skip = ["SGB", "NIPPON LIFE IND", "TOC BSE EXCHANG", "TOC NSE EXCHANG", "STT", "STAMP DUTY", "SERVICE TAX", "TURNOVER CHARGE", "BALLARPUR"]
+    symbols_to_skip = ["2.50GOLDBONDS20", "800318", "GOLD", "NIPPON LIFE IND", "TOC BSE EXCHANG", "TOC NSE EXCHANG", "STT", "STAMP DUTY", "SERVICE TAX", "TURNOVER CHARGE", "BALLARPUR"]
     mse_trade_book = mse_trade_book[~mse_trade_book['name'].isin(symbols_to_skip)]
     mse_trade_book = mse_trade_book[mse_trade_book['code'] != "0000"]
     mse_trade_book = mse_trade_book[~((mse_trade_book['buy_qty'] != 0) & (mse_trade_book['sell_qty'] != 0))]
-
-    '''
-    mse_trade_book[TYPE] = mse_trade_book.apply(lambda row: 'B' if row['buy_qty'] > 0 else 'S', axis=1)
-    mse_trade_book[QUANTITY] = mse_trade_book.apply(
-        lambda row: row['net_qty'] if row['net_qty'] > 0 else row['net_qty'] * -1, axis=1)
-    mse_trade_book[PRICE] = mse_trade_book.apply(
-        lambda row: row['net_amount'] if row['net_amount'] > 0 else row['net_amount'] * -1, axis=1)
-    '''
 
     fetch_symbols(mse_trade_book['code'])
     symbols_df = get_symbol_details()
 
     mse_trade_book['name'] = mse_trade_book['code'].map(lambda x: symbols_df[symbols_df['code'] == x]['name'].iloc[0])
     mse_trade_book['isin'] = mse_trade_book['code'].map(lambda x: symbols_df[symbols_df['code'] == x]['isin'].iloc[0])
+    sgb_df = get_sgb_details()
+    mse_trade_book = pd.concat([mse_trade_book, sgb_df], axis=0).reset_index(drop=True)
 
     symbols_to_isin_dict = dict(zip(mse_trade_book['name'], mse_trade_book['isin']))
     mse_trade_book = mse_trade_book[['ts', 'name', 'net_qty', 'net_amount']]
@@ -76,7 +71,7 @@ def get_broker_transactions():
             return 0
 
     def calculate_brokerage(row):
-        if row['transaction_type'] == 'JV':
+        if row['transaction_type'] == 'JV' and not ("SGB" in row['description']):
             if row['debit'] != 0:
                 return -row['debit']
             elif row['credit'] != 0:
@@ -95,8 +90,6 @@ def get_broker_transactions():
 
     broker_transactions = broker_transactions[['ts', 'cash_invested', 'brokerage']]
     broker_transactions = broker_transactions.groupby(['ts'])['cash_invested', 'brokerage'].sum().reset_index()
-    #broker_transactions['cash_invested'] = broker_transactions['cash_invested'].cumsum()
-    #broker_transactions['brokerage'] = broker_transactions['brokerage'].cumsum()
     broker_transactions = broker_transactions.sort_values('ts', ascending=True)
     broker_transactions.set_index('ts', inplace=True)
     broker_transactions = broker_transactions.sort_index()
